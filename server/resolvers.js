@@ -58,8 +58,24 @@ export const resolvers = {
       }
       return job;
     },
-    updateJob: (_root, { input: { id, title, description } }) => {
-      return updateJob({ id, title, description });
+    updateJob: async (
+      _root,
+      { input: { id, title, description } },
+      { user }
+    ) => {
+      if (!user) {
+        throw new unAuthorizedError("Not authorized to update.");
+      }
+      const job = await updateJob({
+        id,
+        title,
+        description,
+        companyId: user.companyId,
+      });
+      if (!job) {
+        throw new notFoundError("No matching job found in your company. ");
+      }
+      return job;
     },
   },
 };
