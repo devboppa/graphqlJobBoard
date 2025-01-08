@@ -1,18 +1,20 @@
-import { getJobs } from "./db/jobs.js";
+import { getJob, getJobs } from "./db/jobs.js";
 import { getCompany } from "./db/companies.js";
 export const resolvers = {
   Query: {
     greeting: () => "Hello world!",
-    jobs: async () => getJobs(),
+    jobs: () => getJobs(),
+    job: (_root, { id }) => {
+      console.log("id received is: ", id);
+      return getJob(id);
+    },
   },
 
   Job: {
     date: (job) => {
       return toIsoDate(job.createdAt);
     },
-    company: (job) => {
-      return getCompany(job.companyId);
-    },
+    company: (job) => getCompany(job.companyId),
   },
 };
 
