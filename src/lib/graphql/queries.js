@@ -41,3 +41,25 @@ export async function getJob(id) {
   console.log("job returned from query is: ", job);
   return job;
 }
+
+export async function getCompany(id) {
+  const query = gql`
+    query ($id: ID!) {
+      company(id: $id) {
+        name
+        description
+        jobs {
+          id
+          title
+          description
+          date
+        }
+      }
+    }
+  `;
+  const variables = { id };
+  console.log("variables: ", variables);
+  const { company } = await client.request(query, variables);
+  console.log("company returned from query is: ", company);
+  return company;
+}
