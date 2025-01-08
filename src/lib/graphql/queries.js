@@ -29,6 +29,14 @@ const authLink = new ApolloLink((operation, forward) => {
 const apolloClient = new ApolloClient({
   link: concat(authLink, httpLink),
   cache: new InMemoryCache(),
+  // defaultOptions: {
+  //   query: {
+  //     fetchPolicy: "network-only",
+  //   },
+  //   watchQuery: {
+  //     fetchPolicy: "network-only",
+  //   },
+  // },
 });
 
 export async function getJobs() {
@@ -46,28 +54,39 @@ export async function getJobs() {
     }
   `;
 
-  const { data } = await apolloClient.query({ query });
+  const { data } = await apolloClient.query({
+    query,
+    fetchPolicy: "network-only",
+  });
   return data.jobs;
 }
 
-export async function getJob(id) {
-  const query = gql`
-    query ($id: ID!) {
-      job(id: $id) {
-        id
-        title
-        description
-        date
-        company {
-          id
-          name
-        }
-      }
+const jobDetailFragment = gql`
+  fragment JobDetail on Job {
+    id
+    title
+    description
+    date
+    company {
+      id
+      name
     }
-  `;
+  }
+`;
+
+const jobByIdQuery = gql`
+  query ($id: ID!) {
+    job(id: $id) {
+      ...JobDetail
+    }
+  }
+  ${jobDetailFragment}
+`;
+
+export async function getJob(id) {
   const variables = { id };
   console.log("variables: ", variables);
-  const { data } = await apolloClient.query({ query, variables });
+  const { data } = await apolloClient.query({ query: jobByIdQuery, variables });
   console.log("job returned from query is: ", data.job);
   return data.job;
 }
@@ -98,9 +117,10 @@ export async function createJob({ title, description }) {
   const mutation = gql`
     mutation ($input: createJobInput!) {
       job: createJob(input: $input) {
-        id
+        ...JobDetail
       }
     }
+    ${jobDetailFragment}
   `;
 
   const { data } = await apolloClient.mutate({
@@ -110,6 +130,14 @@ export async function createJob({ title, description }) {
         title,
         description,
       },
+    },
+    update: (cache, { data }) => {
+      console.log("[createJob] result: ", data);
+      cache.writeQuery({
+        query: jobByIdQuery,
+        variables: { id: data.job.id },
+        data,
+      });
     },
   });
   return data.job;
