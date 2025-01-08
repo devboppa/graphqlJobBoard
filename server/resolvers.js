@@ -1,16 +1,25 @@
-import { getJob, getJobs, getJobsByCompany } from "./db/jobs.js";
+import { GraphQLError } from "graphql";
+import { createJob, getJob, getJobs, getJobsByCompany } from "./db/jobs.js";
 import { getCompany } from "./db/companies.js";
 export const resolvers = {
   Query: {
     greeting: () => "Hello world!",
     jobs: () => getJobs(),
-    job: (_root, { id }) => {
+    job: async (_root, { id }) => {
       console.log("job id received is: ", id);
-      return getJob(id);
+      const job = await getJob(id);
+      if (!job) {
+        throw new notFoundError("no job with given id found: " + id);
+      }
+      return job;
     },
-    company: (_root, { id }) => {
+    company: async (_root, { id }) => {
       console.log("company id received is: ", id);
-      return getCompany(id);
+      const company = await getCompany(id);
+      if (!company) {
+        throw notFoundError("No company with given id found: " + id);
+      }
+      return company;
     },
   },
 
@@ -23,8 +32,23 @@ export const resolvers = {
   Company: {
     jobs: (company) => getJobsByCompany(company.id),
   },
+
+  Mutation: {
+    createJob: (_root, { title, description }) => {
+      const companyId = "FjcJCHJALA4i";
+      return createJob({ companyId, title, description });
+    },
+  },
 };
 
 function toIsoDate(value) {
   return value.slice(0, "yyyy-mm-dd".length);
+}
+
+function notFoundError(message) {
+  return new GraphQLError(message, {
+    extensions: {
+      code: "NOT_FOUND",
+    },
+  });
 }
