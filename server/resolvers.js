@@ -8,7 +8,7 @@ import {
   updateJob,
 } from "./db/jobs.js";
 import { getCompany } from "./db/companies.js";
-import { UnauthorizedError } from "express-jwt";
+
 export const resolvers = {
   Query: {
     greeting: () => "Hello world!",
@@ -35,7 +35,9 @@ export const resolvers = {
     date: (job) => {
       return toIsoDate(job.createdAt);
     },
-    company: (job) => getCompany(job.companyId),
+    company: (job, _args, { companyLoader }) => {
+      return companyLoader.load(job.companyId);
+    },
   },
   Company: {
     jobs: (company) => getJobsByCompany(company.id),
