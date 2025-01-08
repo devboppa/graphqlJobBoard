@@ -8,6 +8,7 @@ import {
   updateJob,
 } from "./db/jobs.js";
 import { getCompany } from "./db/companies.js";
+import { UnauthorizedError } from "express-jwt";
 export const resolvers = {
   Query: {
     greeting: () => "Hello world!",
@@ -41,12 +42,21 @@ export const resolvers = {
   },
 
   Mutation: {
-    createJob: (_root, { input: { title, description } }) => {
-      const companyId = "FjcJCHJALA4i";
-      return createJob({ companyId, title, description });
+    createJob: (_root, { input: { title, description } }, { user }) => {
+      if (!user) {
+        throw new unAuthorizedError("Not authorized to perform the action.");
+      }
+      return createJob({ companyId: user.companyId, title, description });
     },
-    deleteJob: (_root, { input: { id } }) => {
-      return deleteJob(id);
+    deleteJob: async (_root, { input: { id } }, { user }) => {
+      if (!user) {
+        throw new unAuthorizedError("Not authorized to delete.");
+      }
+      const job = await deleteJob(id, user.companyId);
+      if (!job) {
+        throw new notFoundError("job with id not found in your company.");
+      }
+      return job;
     },
     updateJob: (_root, { input: { id, title, description } }) => {
       return updateJob({ id, title, description });
@@ -62,6 +72,14 @@ function notFoundError(message) {
   return new GraphQLError(message, {
     extensions: {
       code: "NOT_FOUND",
+    },
+  });
+}
+
+function unAuthorizedError(message) {
+  return new GraphQLError(message, {
+    extensions: {
+      code: "NOT_AUTHORIZED",
     },
   });
 }
