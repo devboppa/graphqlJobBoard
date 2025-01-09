@@ -2,7 +2,7 @@ type Query {
   greeting: String
   company(id: ID!): Company
   job(id: ID!): Job
-  jobs: [Job!]
+  jobs(limit: Int, offset: Int): [Job!]
 }
 
 type Company {
